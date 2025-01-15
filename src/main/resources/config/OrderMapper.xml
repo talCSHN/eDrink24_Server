@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.eDrink24.config.OrderMapper">
+
+    <!-- 장바구니에 담긴 상품 불러오기 -->
+    <select id="showAllBasket" parameterType="String" resultType="BasketDTO">
+        select
+        basket.basketId,
+        basket.userId,
+        product.defaultImage,
+        product.productName,
+        product.price,
+        basket.productId,
+        basket.basketQuantity
+        from basket
+        JOIN product ON BASKET.productId = product.productId
+        WHERE basket.userId = ( select userId
+        from customer
+        where loginId=#{loginId}
+        )
+    </select>
+
+    <!-- 결제하기(ORDERS 테이블에 저장) -->
+    <insert id="buyProduct" parameterType="java.util.List" useGeneratedKeys="true" keyProperty="ordersId">
+        insert into orders (storeId, userId, productId, orderDate, pickupDate, isCompleted, orderStatus, orderQuantity, pickupType, orderAmount)
+        VALUES
+        <foreach collection="list" item="order" separator=",">
+            (#{order.storeId}, #{order.userId}, #{order.productId}, #{order.orderDate},
+            #{order.pickupDate}, #{order.isCompleted}, #{order.orderStatus}, #{order.orderQuantity}, #{order.pickupType}, #{order.orderAmount})
+        </foreach>
+    </insert>
+
+    <!-- 결제내역 저장(ORDERSHISTORY 테이블에 저장) -->
+    <insert id="saveBuyHistory" parameterType="java.util.List">
+        INSERT INTO orderHistory (ordersId, changeStatus, changeDate)
+        VALUES
+        <foreach collection="list" item="orderHistory" separator=",">
+            (#{orderHistory.ordersId}, #{orderHistory.changeStatus}, #{orderHistory.changeDate})
+        </foreach>
+    </insert>
+
+    <!-- pointdetails테이블에 저장 -->
+    <insert id="savePointDetails" parameterType="java.util.List">
+        INSERT INTO pointDetails (ordersId, saveDate, point)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.ordersId}, #{item.saveDate}, #{item.point})
+        </foreach>
+    </insert>
+
+    <!-- 사용자 ID에 해당하는 모든 basketItem 데이터 삭제 -->
+    <delete id="deleteBasketItems" parameterType="hashmap">
+        DELETE FROM basketItem
+        WHERE basketId IN
+        <foreach open="(" close=")" collection="basketIds" item="basketId" separator="," >
+            #{basketId}
+        </foreach>
+
+    </delete>
+
+    <!-- userId에 해당하는 basket 데이터 삭제 -->
+    <delete id="deleteBasket" parameterType="hashmap">
+        DELETE FROM basket
+        WHERE basketId IN
+        <foreach open="(" close=")" collection="basketIds" item="basketId" separator="," >
+            #{basketId}
+        </foreach>
+    </delete>
+
+    <!-- 장바구니 저장 -->
+    <insert id="saveNotPurchasedBasket" parameterType="BasketDTO">
+        INSERT INTO basket (basketId, userId)
+        VALUES (#{basketId}, #{userId})
+    </insert>
+
+    <!-- 장바구니 아이템 저장 -->
+    <insert id="saveNotPurchasedBasketItem" parameterType="BasketItemDTO">
+        INSERT INTO basketItem (itemId, basketId, productId, defaultImage, productName, price, basketQuantity)
+        VALUES (#{itemId}, #{basketId}, #{productId}, #{defaultImage}, #{productName}, #{price}, #{basketQuantity})
+    </insert>
+
+    <!-- 결제금액의 1%만큼 포인트 적립 -->
+    <update id="addTotalPoint" parameterType="hashmap">
+        UPDATE customer c
+        JOIN orders o ON c.userId = o.userId
+        SET c.totalPoint = c.totalPoint + #{addedPoint}
+        WHERE o.userId = #{userId};
+    </update>
+
+    <!-- 사용한 포인트 차감 -->
+    <update id="reduceTotalPoint" parameterType="hashmap">
+        UPDATE customer c
+        JOIN orders o ON c.userId = o.userId
+        SET c.totalPoint = c.totalPoint - #{pointAmount}
+        WHERE o.userId = #{userId};
+    </update>
+
+    <!-- 사용한 쿠폰 used값 1로 변경 -->
+    <update id="deleteUsedCoupon" parameterType="hashmap">
+        UPDATE coupon
+        SET `used` = 1, `useDate` = NOW()
+        WHERE couponId = #{couponId} and userId = #{userId}
+    </update>
+
+    <!-- 주문내역 조회 -->
+    <select id="showOrderHistory" parameterType="Integer" resultType="orderTransactionDTO">
+        SELECT
+        orders.ordersId,
+        orders.productId,
+        orders.orderDate,
+        orders.pickupType,
+        product.defaultImage,
+        product.productName,
+        orders.orderQuantity,
+        product.price,
+        reviews.reviewsId,
+        reviews.rating,
+        reviews.sugarRating,
+        reviews.acidityRating,
+        reviews.throatRating,
+        reviews.modifiedDate
+        from orders
+        left join product on orders.productId=product.productId
+        left join reviews on orders.ordersId = reviews.ordersId
+        WHERE userId = #{userId}
+        GROUP BY orders.ordersId, orders.productId, orders.orderDate, orders.pickupType, product.defaultImage, product.productName,orders.orderQuantity,product.price, reviews.reviewsId
+        ORDER BY orders.orderDate DESC
+    </select>
+
+    <!-- 주문상세내역 조회 -->
+    <select id="showOrderHistoryDetails" parameterType="map" resultType="orderTransactionDTO">
+        SELECT
+        o.orderDate,
+        o.ordersId,
+        o.productId,
+        p.defaultImage,
+        p.productName,
+        o.orderQuantity,
+        o.pickupType,
+        o.storeId,
+        s.storeName,
+        o.isCompleted,
+        oh.changeDate,
+        o.orderAmount,
+        o.pickupDate,
+        p.price
+        FROM orders o
+        JOIN product p ON o.productId = p.productId
+        JOIN orderHistory oh ON o.ordersId = oh.ordersId
+        JOIN store s ON o.storeId = s.storeId
+        WHERE o.userId = #{userId} AND  o.orderDate = #{orderDate}
+    </select>
+
+</mapper>

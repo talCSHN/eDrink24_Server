@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.eDrink24.config.ProductMapper">
+
+
+	<!-- 상품 정렬 -->
+	<select id="productFilter" parameterType="map" resultType="ProductDTO">
+		SELECT * FROM product
+		ORDER BY
+		<choose>
+			<!-- test 속성 뒤의 조건식이 참일때 <when>블록 실행 -->
+			<when test="sortProduct == 'price'">price</when>
+			<when test="sortProduct == 'rating'">rating</when>
+			<when test="sortProduct == 'countDibs'">countDibs</when>
+			<!-- 위의 조건이 모두 충족되지 않을 때 <otherwise>블록 실행 -->
+			<otherwise>productId</otherwise>
+		</choose>
+		<!-- 오름차순/내림차순 선택 -->
+		<choose>
+			<when test="sortDirection == 'desc'">DESC</when>
+			<otherwise>ASC</otherwise>
+		</choose>
+	</select>
+
+
+    
+    <select id="showAllProduct" resultType="ProductDTO">
+      select productId, productName, category1, category2, price, defaultImage, countDibs, enrollDate
+      from product
+    </select>
+
+  
+    <select id="showProductByCategory1" resultType="ProductDTO" parameterType="string">
+		select
+		product.productId,
+		product.defaultImage,
+		product.productName,
+		product.category1,
+		product.category2,
+		product.price,
+		product.countDibs,
+		product.enrollDate,
+		round(avg(reviews.rating),1) as rating
+		from orders
+		right join product on orders.productId=product.productId
+		left join reviews on orders.ordersId = reviews.ordersId
+		where category1=#{category1}
+		group by product.productId,
+		product.defaultImage,
+		product.productName,
+		product.category1,
+		product.category2,
+		product.price,
+		product.countDibs,
+		product.enrollDate
+		order by product.productId asc
+    </select>
+
+  
+    <select id="showProductByCategory2" resultType="ProductDTO" parameterType="string">
+		select
+		product.productId,
+		product.defaultImage,
+		product.productName,
+		product.category1,
+		product.category2,
+		product.price,
+		product.countDibs,
+		product.enrollDate,
+		round(avg(reviews.rating),1) as rating
+		from orders
+		right join product on orders.productId=product.productId
+		left join reviews on orders.ordersId = reviews.ordersId
+		where category2=#{category2}
+		group by product.productId,
+		product.defaultImage,
+		product.productName,
+		product.category1,
+		product.category2,
+		product.price,
+		product.countDibs,
+		product.enrollDate
+		order by product.productId asc
+    </select>
+
+	<select id="showDetailProduct" resultType="DetailProductDTO" parameterType="map">
+		select p.productId, p.productName, p.price, p.defaultImage, p.countDibs, pi.detailImage
+		from product p join productImage pi on p.productId = pi.productId
+		where p.category1=#{category1} and p.category2=#{category2} and p.productId=#{productId}
+	</select>
+
+	<select id="findProductNameByProductId" resultType="String" parameterType="int">
+		select productName from product where productId = #{productId}
+	</select>
+
+</mapper>

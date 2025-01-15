@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.eDrink24.config.BasketMapper">
+
+    <insert id="saveBasket" parameterType="BasketDTO" useGeneratedKeys="true" keyProperty="basketId">
+        insert into basket (userId)
+        values (#{userId})
+    </insert>
+
+    <!-- 장바구니 목록에 이미 존재하는지 확인 -->
+    <select id="checkBasketItem" parameterType="Integer" resultType="BasketItemDTO">
+        select basketId, itemId, productId, defaultImage, productName, price, basketQuantity
+        from basketItem
+        where productId=#{productId}
+    </select>
+
+    <!-- 장바구니 목록에 이미 존재하면 중복해서 저장하지 않고 수량만 증가 -->
+    <update id="updateBasketQuantity" parameterType="map">
+        update basketItem
+        set basketQuantity = basketQuantity + #{basketQuantity}
+        where productId=#{productId}
+    </update>
+
+    <!-- 없으면 장바구니 목록에 추가 -->
+     <insert id="saveBasketItem" parameterType="BasketItemDTO">
+        insert into basketItem (basketId, productId, defaultImage, productName, price, basketQuantity)
+        values (#{items.basketId}, #{items.productId}, #{items.defaultImage}, #{items.productName}, #{items.price}, #{items.basketQuantity})
+    </insert>
+
+    <select id="showProductInBasket" parameterType="Integer" resultMap="BasketDTOMap">
+        select b.basketId, b.userId, bi.itemId, bi.basketId ,bi.productId, bi.defaultImage, bi.productName, bi.price, bi.basketQuantity
+        from basket b join basketItem bi on b.basketId = bi.basketId
+        where userId=#{userId}
+    </select>
+
+    <select id="getBasketItems" parameterType="Integer" resultType="BasketItemDTO">
+        select itemId, basketId, productId, defaultImage, productName, price, basketQuantity
+        from basketItem
+        where basketId=#{basketId}
+    </select>
+
+    <resultMap id="BasketDTOMap" type="BasketDTO">
+        <id property="basketId" column="basketId" />
+        <result property="userId" column="userId" />
+        <collection property="items" ofType="BasketItemDTO" column="basketId" select="getBasketItems" />
+    </resultMap>
+
+    <!-- 첫번째 delete문은 basketItem테이블에서 userId에 해당하는 장바구니 목록을 삭제
+         두번째 delete문은 basket테이블에서 userId에 해당하는 장바구니를 삭제-->
+    <delete id="deleteAllBasketItems" parameterType="Integer">
+        delete from basketItem
+        where basketId in (select basketId from basket where userId=#{userId})
+    </delete>
+
+    <delete id="deleteAllBasket" parameterType="Integer">
+        delete from basket
+        where userId=#{userId}
+    </delete>
+
+    <!-- 첫번째 delete문은 basketItem테이블에서 특정 basketId에 해당하는 장바구니 목록을 삭제
+         두번째 delete문은 basket테이블에서 userId와 basketId 해당하는 장바구니를 삭제-->
+    <delete id="deleteSelectedBasketItems" parameterType="Integer">
+        delete from basketItem
+        where basketId=#{basketId}
+    </delete>
+
+    <delete id="deleteSelectedBasket" parameterType="map">
+        delete from basket
+        where userId=#{userId} and basketId=#{basketId}
+    </delete>
+
+    <update id="updateBasketQuantity2" parameterType="map">
+        update basketItem
+        set basketQuantity = #{basketQuantity}
+        where productId=#{productId}
+        and basketId=#{basketId}
+    </update>
+
+    <select id="existsProductInInventory" parameterType="map" resultType="Integer">
+        SELECT COUNT(*)
+        FROM inventory
+        WHERE storeId = #{storeId} AND productId = #{productId}
+    </select>
+
+</mapper>
+

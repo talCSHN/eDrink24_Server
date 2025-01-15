@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.eDrink24.config.CustomerMapper">
+
+    <insert id="saveCustomer" parameterType="CustomerDTO" useGeneratedKeys="true" keyProperty="userId">
+        insert into customer ( loginId, pw, userName, birthdate, gender,
+        phoneNum, email, postalCode, address1, address2, currentLocation, currentStoreId, linkedId)
+        values (#{loginId}, #{pw}, #{userName}, #{birthdate}, #{gender},
+        #{phoneNum}, #{email}, #{postalCode}, #{address1}, #{address2},
+        #{currentLocation}, #{currentStoreId}, #{linkedId})
+    </insert>
+
+    <insert id="addSignupCoupon" parameterType="Integer">
+        INSERT INTO coupon (userId, discountAmount, issueDate, endDate)
+        VALUES (#{userId}, 3000, NOW(), DATE_ADD(NOW(), INTERVAL 30 DAY))
+    </insert>
+
+    <select id="selectCustomerMyPage" resultType="CustomerDTO" parameterType="string">
+        select *
+        from customer
+        where loginId=#{loginId}
+    </select>
+
+    <update id="updateCustomerToMyPage" parameterType="CustomerDTO">
+        update customer
+        set pw=#{pw}, phoneNum=#{phoneNum}, email=#{email}, postalCode=#{postalCode}, address1=#{address1}, address2=#{address2}
+        where loginId=#{loginId}
+    </update>
+
+    <select id="customerIdCheck" resultType="CustomerDTO" parameterType="string">
+        select userName, loginId, gender, birthdate, phoneNum, email, postalCode, address1, address2, currentLocation, currentStoreId, totalPoint, role
+        from customer
+        where loginId=#{loginId}
+    </select>
+
+    <select id="findUserNameByUserId" resultType="string" parameterType="int">
+        select userName from customer where userId=#{userId}
+    </select>
+
+
+    <update id="saveBrNum" parameterType="CustomerDTO">
+        UPDATE customer
+        SET brNum = #{brNum}
+        WHERE userId = #{userId}
+    </update>
+
+    <update id="updateRole" parameterType="Long">
+        update customer
+        set role="점주"
+        where brNum=#{brNum}
+    </update>
+
+
+    <select id="findMyStore" parameterType="Long" resultType="int">
+        SELECT store.storeId
+        FROM customer
+        JOIN store ON customer.brNum = store.brNum
+        WHERE customer.role = "점주"
+    </select>
+
+
+</mapper>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.eDrink24.config.PointMapper">
+
+    <select id="showTotalPoint" parameterType="Integer" resultType="Integer">
+      select totalPoint
+      from customer
+	  where userId = #{userId}
+    </select>
+
+    <!-- 마이페이지에서 포인트 클릭 시 개별 포인트 내역 보여줌 -->
+    <select id="showPoint" parameterType="Integer" resultType="PointDTO">
+        select c.userName, p.productName,p.defaultImage, pd.saveDate, p.price , pd.point
+        from orders o
+        join customer c on c.userId=o.userId
+        join pointDetails pd on o.ordersId=pd.ordersId
+        join product p on o.productId=p.productId
+        where o.userId = #{userId};
+    </select>
+
+</mapper>

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.eDrink24.config.StoreMapper">
+
+    <!-- 장바구니에 담긴 상품 불러오기 -->
+    <select id="showAllStore" resultType="StoreDTO">
+      select
+        store.storeId,
+        store.storeName,
+        store.storeAddress,
+        store.storePhoneNum
+      from store
+    </select>
+
+    <!-- 사업자등록번호가 존재하는지 확인 -->
+    <select id="checkBrNum" parameterType="map" resultType="StoreDTO">
+        select storeId, brNum
+        from store
+        where storeId=#{storeId} and brNum=#{brNum}
+    </select>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</mapper>

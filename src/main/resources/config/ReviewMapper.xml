@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.eDrink24.config.ReviewMapper">
+
+    <!-- 제품에 대한 리뷰 확인 -->
+    <select id="showProductReview" resultType="ReviewDTO" parameterType="Integer">
+        select c.userName, r.reviewsId, r.content, r.enrolledDate, r.modifiedDate, r.rating, r.sugarRating, r.acidityRating, r.throatRating
+        from orders o
+        join customer c on o.userId = c.userId
+        join reviews r on o.ordersId=r.ordersId
+        where o.productId=#{productId}
+    </select>
+
+    <!-- 내가 작성한 리뷰 확인하기 -->
+    <select id="checkMyReview" resultType="ReviewDTO" parameterType="map">
+        SELECT
+        orders.userId,
+        product.defaultImage,
+        product.productName,
+        reviews.reviewsId,
+        reviews.content,
+        reviews.enrolledDate,
+        reviews.rating,
+        reviews.sugarRating,
+        reviews.acidityRating,
+        reviews.throatRating,
+        reviews.modifiedDate
+        from orders
+        left join product on orders.productId=product.productId
+        left join reviews on orders.ordersId = reviews.ordersId
+        WHERE orders.userId = #{userId} and reviews.reviewsId=#{reviewsId}
+    </select>
+
+    <!-- 주문내역에 changeStatus가 PICKUPED인지 확인 -->
+    <select id="isOrderPickuped" resultType="boolean" parameterType="Integer">
+        SELECT CASE WHEN COUNT(*) > 0 THEN TRUE ELSE FALSE END
+        FROM orderHistory
+        WHERE ordersId = #{ordersId}
+        AND changeStatus = 'PICKUPED'
+    </select>
+
+    <insert id="insertReview" parameterType="ReviewDTO">
+        <!-- 주문 상태가 PICKUPED 인지 확인 -->
+        <selectKey keyProperty="isPickuped" resultType="boolean" order="BEFORE"> <!-- order="BEFORE"는 insert문이 실행되기전에 이 쿼리를 실행한다는 의미 -->
+            SELECT CASE WHEN COUNT(*) > 0 THEN TRUE ELSE FALSE END
+            FROM orderHistory
+            WHERE ordersId = #{ordersId}
+            AND changeStatus = 'PICKUPED'
+        </selectKey>
+
+        <!-- 상태가 PICKUPED인 경우에만 리뷰 삽입 -->
+        <if test="isPickuped">
+            INSERT INTO reviews (ordersId, content, enrolledDate, reviewImage, rating, sugarRating, acidityRating, throatRating)
+            VALUES (#{ordersId}, #{content}, NOW(), #{reviewImage}, #{rating}, #{sugarRating}, #{acidityRating}, #{throatRating})
+        </if>
+    </insert>
+
+    <update id="fixReviewContent" parameterType="ReviewDTO">
+        update reviews
+        set rating=#{rating},
+            sugarRating=#{sugarRating},
+            acidityRating=#{acidityRating},
+            throatRating=#{throatRating},
+            content=#{content},
+            modifiedDate=NOW()
+        where reviewsId=#{reviewsId}
+    </update>
+
+
+
+</mapper>
+

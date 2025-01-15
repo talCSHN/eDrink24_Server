@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.eDrink24.config.AdminMapper">
+
+    <!-- 발주신청시 매장 내 해당재고 갯수 증가 -->
+    <update id="updateInventoryQuantity" parameterType="InventoryDTO">
+        update inventory
+        set quantity = quantity + #{quantity}
+        where productId=#{productId} and storeId=#{storeId}
+    </update>
+
+    <!-- 장바구니 목록에 이미 존재하는지 확인 -->
+    <select id="checkInventoryProduct" parameterType="Integer" resultType="InventoryDTO">
+        select inventoryId, storeId, productId, quantity
+        from inventory
+        where productId=#{productId} and storeId=#{storeId}
+    </select>
+
+    <!-- 해당재고 없으면 INVENTORY에 추가 -->
+    <insert id="addProductToInventory" parameterType="InventoryDTO">
+        insert into inventory (storeId, productId, quantity)
+        values (#{storeId}, #{productId}, #{quantity})
+    </insert>
+
+    <!-- 해당재고 없으면 INVENTORY에 추가 -->
+    <insert id="addAdminOrderHistory" parameterType="InventoryDTO">
+        insert into adminOrderHistory (storeId, productId, productName, adminOrderQuantity)
+        values (#{storeId}, #{productId}, #{productName}, #{adminOrderQuantity})
+    </insert>
+
+    <!-- 발주신청시 픽업유형 변경 -->
+    <update id="updatePickupType" parameterType="InventoryDTO">
+        update orders
+        set pickupType = 'TODAY'
+        where productId=#{productId} and storeId=#{storeId}
+    </update>
+
+    <!-- 발주완료 목록 조회 -->
+    <select id="showAdminOrderList" parameterType = "int" resultType="InventoryDTO">
+        select storeId, productId, productName, adminOrderQuantity
+        from adminOrderHistory
+        where storeId=#{storeId}
+    </select>
+
+    <update id="changeIsCompleted" parameterType="Integer">
+        update orders
+        set isCompleted=true
+        where ordersId=#{ordersId}
+    </update>
+
+    <update id="ChangeStatusAndDate" parameterType="Integer">
+        update orderHistory
+        set changeStatus="PICKUPED", changeDate=NOW()
+        where ordersId=#{ordersId}
+    </update>
+
+    <update id="changeInventoryQuantity" parameterType="map">
+        UPDATE inventory
+        SET quantity = quantity - (
+        SELECT orderQuantity
+        FROM orders
+        WHERE ordersId = #{ordersId}
+        )
+        WHERE productId = (
+        SELECT productId
+        FROM orders
+        WHERE ordersId = #{ordersId}
+        )
+        AND storeId = (
+        SELECT storeId
+        FROM orders
+        WHERE ordersId = #{ordersId}
+        )
+    </update>
+
+    <select id="showPickupCompletedPage" resultType="AdminDTO" parameterType="int">
+        select o.ordersId, o.storeId, o.userId, o.productId, o.orderDate, o.isCompleted, oh.changeStatus,oh.changeDate, o.orderQuantity
+        from orders o join orderHistory oh on o.ordersId = oh.ordersId
+        where o.isCompleted=true and o.storeId = #{storeId}
+    </select>
+
+    <select id="showTodayPickupPage" resultType="AdminDTO" parameterType="int">
+        select o.ordersId, o.storeId, o.userId, o.productId, o.orderDate, o.isCompleted, oh.changeStatus,oh.changeDate, o.orderQuantity, o.pickupType
+        from orders o join orderHistory oh on o.ordersId = oh.ordersId
+        where o.isCompleted=false and o.pickupType="TODAY" and o.storeId = #{storeId}
+    </select>
+
+    <select id="showReservationPickupPage" resultType="AdminDTO" parameterType="int">
+        select o.ordersId, o.storeId, o.userId, o.productId, o.orderDate, o.isCompleted, oh.changeStatus, oh.changeDate, o.orderQuantity, o.pickupType
+        from orders o join orderHistory oh on o.ordersId = oh.ordersId
+        where o.isCompleted=false and o.pickupType="RESERVATION" and o.storeId = #{storeId}
+    </select>
+
+</mapper>
+

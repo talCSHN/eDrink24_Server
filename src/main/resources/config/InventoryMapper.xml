@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.eDrink24.config.InventoryMapper">
+    <select id="findInventoryForUpdate" parameterType="map" resultType="InventoryDTO">
+        SELECT * FROM inventory
+        WHERE storeId = #{storeId} AND productId = #{productId}
+        FOR UPDATE <!--해당 레코드를 잠금 처리. 트랜잭션이 끝나면 풀림-->
+    </select>
+
+    <update id="updateInventory" parameterType="map">
+        UPDATE inventory
+        SET quantity = quantity - #{quantity}
+        WHERE productId = #{productId} AND storeId = #{storeId}
+    </update>
+</mapper>
